@@ -13,3 +13,10 @@ lib/*
 src/legacytest/*
 checkouts/*
 bin
+
+# Maven
+target/
+*.jar
+*.war
+*.ear
+*.class
