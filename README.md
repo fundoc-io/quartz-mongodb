@@ -1,46 +1,73 @@
 # A MongoDB-based store for Quartz
 
-## Be Aware of Abandonware
+## Project Fork Notice
 
-**This project IS NO LONGER MAINTAINED**. If you plan on using it, be ready to address any issues
-on your own and produce your own releases. Issues that ask others to do something
-will be ignored. Pull requests may be merged on a very random schedule.
+**This project is a fork of [michaelklishin/quartz-mongodb](https://github.com/michaelklishin/quartz-mongodb)**
 
+This project is based on the MongoDB-backed job store originally developed by MuleSoft and later maintained by Michael
+S. Klishin. We created this fork to modernize the package structure and build system for better integration with current
+development practices.
+
+### What Changed in This Fork:
+
+- **Package Refactoring**: All packages have been renamed from `com.novemberain.quartz.mongodb` to
+  `io.fundoc.quartz.mongodb`
+- **Build System Migration**: Migrated from Gradle to Maven for better ecosystem compatibility
+- **Maven Coordinates**: Updated to `groupId: io.fundoc`, `artifactId: quartz-mongodb`, `version: 1.0.0`
+- **Security Updates**: All dependencies upgraded to latest secure versions
+
+### Migration Guide:
+
+If you're migrating from the original `com.novemberain` packages:
+
+1. Update all import statements in your code from `com.novemberain.quartz.mongodb.*` to `io.fundoc.quartz.mongodb.*`
+2. Update your Maven/Gradle dependencies to use the new coordinates
+3. Update any configuration files that reference the old package names
 
 ## What is This?
 
-This is a MongoDB-backed job store for the [Quartz scheduler](http://quartz-scheduler.org/).
+This is a MongoDB-backed job store for the [Quartz scheduler](http://quartz-scheduler.org/). It supports all Quartz
+trigger types and tries to be as feature complete as possible.
 
 ## Maven Artifacts
 
-Artifacts are released to [Bintray](https://bintray.com/michaelklishin/maven/).
+### Current Release (Maven)
 
-If you are using Maven, add the following repository
-definition to your `pom.xml`:
+Add the following dependency to your `pom.xml`:
 
 ``` xml
-<repositories>
-    <repository>
-        <id>jcenter</id>
-        <url>https://jcenter.bintray.com/</url>
-    </repository>
-</repositories>
+<dependency>
+    <groupId>io.fundoc</groupId>
+    <artifactId>quartz-mongodb</artifactId>
+    <version>1.0.0</version>
+</dependency>
 ```
 
-With Gradle, add the following to your `build.gradle`:
+### Building from Source
 
-``` groovy
-repositories {
-    maven {
-        url "https://jcenter.bintray.com/"
-    }
-}
+This project now uses Maven for building. To build from source:
+
+```bash
+# Compile the project
+mvn clean compile
+
+# Run tests (requires MongoDB)
+mvn test
+
+# Create JAR
+mvn package
+
+# Install to local repository
+mvn install
 ```
 
+### Legacy Information (Original Project)
 
-### The Most Recent Release
+The original project by michaelklishin used different coordinates and Gradle:
 
-With Maven:
+Artifacts were released to [Bintray](https://bintray.com/michaelklishin/maven/).
+
+Original Maven coordinates:
 
 ``` xml
 <dependency>
@@ -50,12 +77,11 @@ With Maven:
 </dependency>
 ```
 
-With Gradle:
+Original Gradle coordinates:
 
 ``` groovy
 compile "com.novemberain:quartz-mongodb:2.2.0-rc2"
 ```
-
 
 ## Usage
 
@@ -64,7 +90,7 @@ via a property file, `quartz.properties`:
 
 ``` ini
 # Use the MongoDB store
-org.quartz.jobStore.class=com.novemberain.quartz.mongodb.MongoDBJobStore
+org.quartz.jobStore.class=io.fundoc.quartz.mongodb.MongoDBJobStore
 # MongoDB URI (optional if 'org.quartz.jobStore.addresses' is set)
 org.quartz.jobStore.mongoUri=mongodb://localhost:27020
 # comma separated list of mongodb hosts/replica set seeds (optional if 'org.quartz.jobStore.mongoUri' is set)
@@ -77,15 +103,14 @@ org.quartz.jobStore.collectionPrefix=mycol
 org.quartz.threadPool.threadCount=1
 ```
 
-
 ### Error Handling in Clustered Mode
 
 When running in clustered mode, the store will periodically check in
 with the cluster. Should that operation fail, the store needs to
 decide what to do:
 
- * Shut down
- * Do nothing and optimistically proceed
+* Shut down
+* Do nothing and optimistically proceed
 
 Different strategies make sense in different scenarios. Pausing Quartz would
 be optimal but this job store currently doesn't have that option.
@@ -95,25 +120,23 @@ implementation.
 
 To shut down the JVM (which is the default), add the following key to `quartz.properties`
 
-    org.quartz.jobStore.checkInErrorHandler.class=com.novemberain.quartz.mongodb.cluster.KamikazeErrorHandler
+    org.quartz.jobStore.checkInErrorHandler.class=io.fundoc.quartz.mongodb.cluster.KamikazeErrorHandler
 
 to ignore the failure:
 
-    org.quartz.jobStore.checkInErrorHandler.class=com.novemberain.quartz.mongodb.cluster.NoOpErrorHandler
-
-
-
+    org.quartz.jobStore.checkInErrorHandler.class=io.fundoc.quartz.mongodb.cluster.NoOpErrorHandler
 
 ### Clojure and Quartzite
 
 If you use [Quartzite](http://clojurequartz.info) or want your job classes to be available
 to Clojure code, use:
 
-    org.quartz.jobStore.class=com.novemberain.quartz.mongodb.DynamicMongoDBJobStore
+    org.quartz.jobStore.class=io.fundoc.quartz.mongodb.DynamicMongoDBJobStore
 
 (this assumes Clojure jar is on classpath).
 
 ### Job Data storage
+
 By default you are allowed to pass any `java.io.Serializable` objects inside `JobDataMap`.
 It will be serialized and stored as a `base64` string.
 
@@ -171,32 +194,8 @@ org.quartz.jobStore.misfireThreshold=10000
 org.quartz.jobStore.mongoOptionWriteConcernTimeoutMillis=10000
 ```
 
-## Continuous Integration
-
-[![Build Status](https://secure.travis-ci.org/michaelklishin/quartz-mongodb.png?branch=master)](http://travis-ci.org/michaelklishin/quartz-mongodb)
-
-CI is hosted by [Travis CI](http://travis-ci.org/)
-
-
 ## Copyright & License
 
-(c) Michael S. Klishin, Alex Petrov, 2011-2020.
+(c) fundoc-io, 2024. Based on work by Michael S. Klishin, Alex Petrov, 2011-2020.
 
 [Apache Public License 2.0](http://www.apache.org/licenses/LICENSE-2.0.html)
-
-
-## FAQ
-
-### Project Origins
-
-The project was originally started by MuleSoft. It supports all Quartz trigger types and
-tries to be as feature complete as possible.
-
-### Why the Fork?
-
-MuleSoft developers did not respond to attempts to submit pull
-requests for several months. As more and more functionality was added
-and implementation code refactored, I decided to completely separate
-this fork form GitHub forks network because the project is now too
-different from the original one. All changes were made with respect to
-the Apache Public License 2.0.

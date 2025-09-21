@@ -1,0 +1,57 @@
+name: Snapshot Deploy
+
+on:
+    workflow_dispatch:
+    push:
+        branches:
+            - main
+
+jobs:
+    snapshot:
+        runs-on: ubuntu-latest
+
+        steps:
+            -   name: Checkout code
+                uses: actions/checkout@v4
+
+            -   name: Set up JDK 11
+                uses: actions/setup-java@v4
+                with:
+                    java-version: '11'
+                    distribution: 'temurin'
+                    server-id: ossrh
+                    server-username: OSSRH_USERNAME
+                    server-password: OSSRH_PASSWORD
+                    gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+                    gpg-passphrase: MAVEN_GPG_PASSPHRASE
+
+            -   name: Extract project version
+                id: project_version
+                run: |
+                    VERSION=$(mvn -B -ntp help:evaluate -Dexpression=project.version -q -DforceStdout)
+                    echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+                    echo "Detected version: $VERSION"
+
+            -   name: Ensure SNAPSHOT version
+                run: |
+                    if [[ "${{ steps.project_version.outputs.VERSION }}" != *-SNAPSHOT ]]; then
+                      echo "Project version ${{ steps.project_version.outputs.VERSION }} is not a SNAPSHOT. Aborting snapshot deployment." >&2
+                      exit 1
+                    fi
+
+            -   name: Cache Maven repository
+                uses: actions/cache@v3
+                with:
+                    path: ~/.m2
+                    key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+                    restore-keys: ${{ runner.os }}-m2
+
+            -   name: Verify style and tests
+                run: mvn -B -ntp spotless:check verify
+
+            -   name: Deploy SNAPSHOT to Sonatype
+                env:
+                    OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+                    OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+                    MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+                run: mvn -B -ntp deploy -P release
