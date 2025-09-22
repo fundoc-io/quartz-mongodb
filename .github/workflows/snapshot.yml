@@ -2,9 +2,6 @@ name: Snapshot Deploy
 
 on:
     workflow_dispatch:
-    push:
-        branches:
-            - main
 
 jobs:
     snapshot:
@@ -14,44 +11,64 @@ jobs:
             -   name: Checkout code
                 uses: actions/checkout@v4
 
-            -   name: Set up JDK 11
+            -   name: Set up Temurin JDK 11 with Maven Central credentials and GPG
                 uses: actions/setup-java@v4
                 with:
+                    distribution: temurin
                     java-version: '11'
-                    distribution: 'temurin'
-                    server-id: ossrh
-                    server-username: OSSRH_USERNAME
-                    server-password: OSSRH_PASSWORD
+                    # Must match the <server> id used by Maven for credentials
+                    server-id: central
+                    # These are variable names; values are provided via env mapping below
+                    server-username: CENTRAL_USERNAME
+                    server-password: CENTRAL_PASSWORD
+                    # Optional for snapshots (signing not required), but harmless to keep
                     gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
                     gpg-passphrase: MAVEN_GPG_PASSPHRASE
+
+            -   name: Export credentials for settings.xml
+                env:
+                    CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+                    CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+                    MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+                run: |
+                    test -n "$CENTRAL_USERNAME" || (echo "CENTRAL_USERNAME not set" && exit 1)
+                    test -n "$CENTRAL_PASSWORD" || (echo "CENTRAL_PASSWORD not set" && exit 1)
+                    echo "Credentials ready."
 
             -   name: Extract project version
                 id: project_version
                 run: |
                     VERSION=$(mvn -B -ntp help:evaluate -Dexpression=project.version -q -DforceStdout)
-                    echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+                    echo "version=$VERSION" >> "$GITHUB_OUTPUT"
                     echo "Detected version: $VERSION"
 
             -   name: Ensure SNAPSHOT version
                 run: |
-                    if [[ "${{ steps.project_version.outputs.VERSION }}" != *-SNAPSHOT ]]; then
-                      echo "Project version ${{ steps.project_version.outputs.VERSION }} is not a SNAPSHOT. Aborting snapshot deployment." >&2
+                    if [[ "${{ steps.project_version.outputs.version }}" != *-SNAPSHOT ]]; then
+                      echo "Project version ${{ steps.project_version.outputs.version }} is not a SNAPSHOT. Aborting snapshot deployment." >&2
                       exit 1
                     fi
 
             -   name: Cache Maven repository
-                uses: actions/cache@v3
+                uses: actions/cache@v4
                 with:
-                    path: ~/.m2
+                    path: ~/.m2/repository
                     key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-                    restore-keys: ${{ runner.os }}-m2
+                    restore-keys: |
+                        ${{ runner.os }}-m2-
 
             -   name: Verify style and tests
                 run: mvn -B -ntp spotless:check verify
 
-            -   name: Deploy SNAPSHOT to Sonatype
+            -   name: Deploy SNAPSHOT to Central snapshots repo
                 env:
-                    OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-                    OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+                    CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+                    CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
                     MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-                run: mvn -B -ntp deploy -P release
+                run: |
+                    # Use altDeploymentRepository to avoid touching the POM's distributionManagement.
+                    # Central Portal's snapshots endpoint:
+                    #   https://central.sonatype.com/repository/maven-snapshots/
+                    mvn -B -ntp -DskipTests \
+                      -DaltDeploymentRepository=central::default::https://central.sonatype.com/repository/maven-snapshots/ \
+                      deploy

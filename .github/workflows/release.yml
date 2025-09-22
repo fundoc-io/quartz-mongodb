@@ -16,51 +16,57 @@ jobs:
             -   name: Checkout code
                 uses: actions/checkout@v4
 
-            -   name: Set up JDK 11
+            -   name: Set up Temurin JDK 11 with Maven Central credentials and GPG
                 uses: actions/setup-java@v4
                 with:
+                    distribution: temurin
                     java-version: '11'
-                    distribution: 'temurin'
-                    server-id: ossrh
-                    server-username: MAVEN_USERNAME
-                    server-password: MAVEN_PASSWORD
+                    # Must match <publishingServerId> in POM (central-publishing-maven-plugin)
+                    server-id: central
+                    # Variable names (not values) – values will be provided via env mapping
+                    server-username: CENTRAL_USERNAME
+                    server-password: CENTRAL_PASSWORD
                     gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
                     gpg-passphrase: MAVEN_GPG_PASSPHRASE
+
+            -   name: Export credentials for settings.xml
+                env:
+                    CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+                    CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+                    MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+                run: |
+                    test -n "$CENTRAL_USERNAME" || (echo "CENTRAL_USERNAME not set" && exit 1)
+                    test -n "$CENTRAL_PASSWORD" || (echo "CENTRAL_PASSWORD not set" && exit 1)
+                    test -n "$MAVEN_GPG_PASSPHRASE" || (echo "GPG_PASSPHRASE not set" && exit 1)
+                    echo "Credentials ready."
 
             -   name: Extract version from pom.xml
                 id: extract_version
                 run: |
-                    VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-                    echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+                    VERSION=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version)
+                    echo "version=$VERSION" >> "$GITHUB_OUTPUT"
                     echo "Extracted version: $VERSION"
 
-            -   name: Cache Maven dependencies
-                uses: actions/cache@v3
+            -   name: Cache Maven repository
+                uses: actions/cache@v4
                 with:
-                    path: ~/.m2
+                    path: ~/.m2/repository
                     key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-                    restore-keys: ${{ runner.os }}-m2
+                    restore-keys: |
+                        ${{ runner.os }}-m2-
 
-            -   name: Update pom.xml for Maven Central publishing
-                run: |
-                    # Add distribution management and profiles for release
-                    mvn versions:set-property -Dproperty=maven.compiler.release -DnewVersion=8
-
-            -   name: Build and test
-                run: |
-                    mvn clean compile -DskipTests
+            -   name: Build & test
+                run: mvn -B -V clean verify
 
             -   name: Deploy to Maven Central
                 env:
-                    MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-                    MAVEN_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+                    CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+                    CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
                     MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-                run: |
-                    mvn clean deploy -DskipTests -Prelease
+                run: mvn -B -V -Prelease -DskipTests deploy
 
-            -   name: Build JAR files for release
-                run: |
-                    mvn clean package source:jar javadoc:jar -DskipTests
+            -   name: Build JARs for GitHub Release
+                run: mvn -B -V -DskipTests package source:jar javadoc:jar
 
             -   name: Create GitHub Release
                 id: create_release
@@ -68,54 +74,50 @@ jobs:
                 env:
                     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                 with:
-                    tag_name: v${{ steps.extract_version.outputs.VERSION }}
-                    release_name: ${{ steps.extract_version.outputs.VERSION }}
+                    tag_name: v${{ steps.extract_version.outputs.version }}
+                    release_name: ${{ steps.extract_version.outputs.version }}
                     body: |
-                        ## Release ${{ steps.extract_version.outputs.VERSION }}
+                        ## Release ${{ steps.extract_version.outputs.version }}
 
                         ${{ github.event.inputs.release_notes }}
 
                         ### Maven Dependency
                         ```xml
                         <dependency>
-                            <groupId>io.fundoc</groupId>
-                            <artifactId>quartz-mongodb</artifactId>
-                            <version>${{ steps.extract_version.outputs.VERSION }}</version>
+                          <groupId>io.fundoc</groupId>
+                          <artifactId>quartz-mongodb</artifactId>
+                          <version>${{ steps.extract_version.outputs.version }}</version>
                         </dependency>
                         ```
-
-                        ### Changes
-                        - Published to Maven Central
-                        - See commit history for detailed changes
                     draft: false
                     prerelease: false
 
-            -   name: Upload JAR to GitHub Release
+            -   name: Upload main JAR
                 uses: actions/upload-release-asset@v1
                 env:
                     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                 with:
                     upload_url: ${{ steps.create_release.outputs.upload_url }}
-                    asset_path: ./target/quartz-mongodb-${{ steps.extract_version.outputs.VERSION }}.jar
-                    asset_name: quartz-mongodb-${{ steps.extract_version.outputs.VERSION }}.jar
+                    asset_path: ./target/quartz-mongodb-${{ steps.extract_version.outputs.version }}.jar
+                    asset_name: quartz-mongodb-${{ steps.extract_version.outputs.version }}.jar
                     asset_content_type: application/java-archive
 
-            -   name: Upload Sources JAR to GitHub Release
+            -   name: Upload sources JAR
                 uses: actions/upload-release-asset@v1
                 env:
                     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                 with:
                     upload_url: ${{ steps.create_release.outputs.upload_url }}
-                    asset_path: ./target/quartz-mongodb-${{ steps.extract_version.outputs.VERSION }}-sources.jar
-                    asset_name: quartz-mongodb-${{ steps.extract_version.outputs.VERSION }}-sources.jar
+                    asset_path: ./target/quartz-mongodb-${{ steps.extract_version.outputs.version }}-sources.jar
+                    asset_name: quartz-mongodb-${{ steps.extract_version.outputs.version }}-sources.jar
                     asset_content_type: application/java-archive
 
-            -   name: Upload Javadoc JAR to GitHub Release
+            -   name: Upload javadoc JAR
                 uses: actions/upload-release-asset@v1
                 env:
                     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                 with:
                     upload_url: ${{ steps.create_release.outputs.upload_url }}
-                    asset_path: ./target/quartz-mongodb-${{ steps.extract_version.outputs.VERSION }}-javadoc.jar
-                    asset_name: quartz-mongodb-${{ steps.extract_version.outputs.VERSION }}-javadoc.jar
+                    asset_path: ./target/quartz-mongodb-${{ steps.extract_version.outputs.version }}-javadoc.jar
+                    asset_name: quartz-mongodb-${{ steps.extract_version.outputs.version }}-javadoc.jar
                     asset_content_type: application/java-archive

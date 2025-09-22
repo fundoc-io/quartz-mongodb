@@ -28,21 +28,10 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/fundoc-io/quartz-mongodb.git</connection>
-        <developerConnection>scm:git:ssh://github.com:fundoc-io/quartz-mongodb.git</developerConnection>
-        <url>https://github.com/fundoc-io/quartz-mongodb/tree/master</url>
+        <connection>scm:git:https://github.com/fundoc-io/quartz-mongodb.git</connection>
+        <developerConnection>scm:git:git@github.com:fundoc-io/quartz-mongodb.git</developerConnection>
+        <url>https://github.com/fundoc-io/quartz-mongodb</url>
     </scm>
-
-    <distributionManagement>
-        <repository>
-            <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
 
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -50,30 +39,30 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- Dependency versions -->
-        <quartz.version>2.5.0</quartz.version>
-        <mongodb.driver.version>5.6.0</mongodb.driver.version>
+        <cglib.version>3.3.0</cglib.version>
+        <clojure.version>1.12.2</clojure.version>
         <commons.codec.version>1.19.0</commons.codec.version>
         <commons.lang3.version>3.18.0</commons.lang3.version>
-        <httpcore.version>4.4.16</httpcore.version>
-        <slf4j.version>1.7.36</slf4j.version>
-        <clojure.version>1.12.2</clojure.version>
-        <joda.time.version>2.14.0</joda.time.version>
-        <groovy.version>3.0.25</groovy.version>
-        <spock.version>2.4-M6-groovy-3.0</spock.version>
-        <cglib.version>3.3.0</cglib.version>
-        <objenesis.version>3.4</objenesis.version>
         <embed.mongo.version>4.21.0</embed.mongo.version>
+        <groovy.version>3.0.25</groovy.version>
+        <httpcore.version>4.4.16</httpcore.version>
+        <joda.time.version>2.14.0</joda.time.version>
+        <mongodb.driver.version>5.6.0</mongodb.driver.version>
+        <objenesis.version>3.4</objenesis.version>
+        <quartz.version>2.5.0</quartz.version>
+        <slf4j.version>1.7.36</slf4j.version>
+        <spock.version>2.4-M6-groovy-3.0</spock.version>
 
         <!-- Plugin versions -->
-        <maven.compiler.plugin.version>3.14.0</maven.compiler.plugin.version>
-        <maven.surefire.plugin.version>3.5.4</maven.surefire.plugin.version>
-        <gmavenplus.plugin.version>4.2.1</gmavenplus.plugin.version>
-        <maven.source.plugin.version>3.3.1</maven.source.plugin.version>
-        <maven.javadoc.plugin.version>3.11.3</maven.javadoc.plugin.version>
-        <maven.gpg.plugin.version>3.2.8</maven.gpg.plugin.version>
-        <nexus.staging.plugin.version>1.7.0</nexus.staging.plugin.version>
-        <exec.maven.plugin.version>3.5.1</exec.maven.plugin.version>
-        <spotless.plugin.version>2.46.1</spotless.plugin.version>
+        <plugin.central-publishing.version>0.8.0</plugin.central-publishing.version>
+        <plugin.compiler.version>3.14.0</plugin.compiler.version>
+        <plugin.exec.version>3.5.1</plugin.exec.version>
+        <plugin.gmavenplus.version>4.2.1</plugin.gmavenplus.version>
+        <plugin.gpg.version>3.2.8</plugin.gpg.version>
+        <plugin.javadoc.version>3.11.3</plugin.javadoc.version>
+        <plugin.source.version>3.3.1</plugin.source.version>
+        <plugin.spotless.version>2.46.1</plugin.spotless.version>
+        <plugin.surefire.version>3.5.4</plugin.surefire.version>
     </properties>
 
     <dependencies>
@@ -170,7 +159,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>${maven.compiler.plugin.version}</version>
+                <version>${plugin.compiler.version}</version>
                 <configuration>
                     <source>${maven.compiler.source}</source>
                     <target>${maven.compiler.target}</target>
@@ -181,7 +170,7 @@
             <plugin>
                 <groupId>org.codehaus.gmavenplus</groupId>
                 <artifactId>gmavenplus-plugin</artifactId>
-                <version>${gmavenplus.plugin.version}</version>
+                <version>${plugin.gmavenplus.version}</version>
                 <executions>
                     <execution>
                         <goals>
@@ -195,7 +184,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>${maven.surefire.plugin.version}</version>
+                <version>${plugin.surefire.version}</version>
                 <configuration>
                     <includes>
                         <include>**/*Test.java</include>
@@ -203,7 +192,6 @@
                         <include>**/*Spec.groovy</include>
                     </includes>
                     <useFile>false</useFile>
-                    <!-- Force test runs even when no changes -->
                     <skipAfterFailureCount>0</skipAfterFailureCount>
                 </configuration>
             </plugin>
@@ -212,7 +200,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>${maven.source.plugin.version}</version>
+                <version>${plugin.source.version}</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
@@ -227,7 +215,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>${maven.javadoc.plugin.version}</version>
+                <version>${plugin.javadoc.version}</version>
                 <configuration>
                     <doclint>none</doclint>
                     <quiet>true</quiet>
@@ -241,11 +229,12 @@
                     </execution>
                 </executions>
             </plugin>
-            <!-- Spotless plugin for code style enforcement -->
+
+            <!-- Spotless plugin -->
             <plugin>
                 <groupId>com.diffplug.spotless</groupId>
                 <artifactId>spotless-maven-plugin</artifactId>
-                <version>${spotless.plugin.version}</version>
+                <version>${plugin.spotless.version}</version>
                 <configuration>
                     <java>
                         <includes>
@@ -291,29 +280,45 @@
                     </execution>
                 </executions>
             </plugin>
-            <!-- Exec plugin for MongoDB startup (optional, for development) -->
+
+            <!-- Exec plugin (dev only, unchanged) -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <version>${exec.maven.plugin.version}</version>
+                <version>${plugin.exec.version}</version>
                 <configuration>
                     <mainClass>de.flapdoodle.embed.mongo.MongodStarter</mainClass>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>${plugin.central-publishing.version}</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <!-- Corresponds to the <server><id>central</id> configuration in settings.xml -->
+                    <publishingServerId>central</publishingServerId>
+
+                    <!-- Commonly used in CI: Automatically publish after verification; remove this option if manual publishing is required-->
+                    <autoPublish>true</autoPublish>
+
+                    <!-- Optional: Block until "published" (requires autoPublish=true) -->
+                    <waitUntil>published</waitUntil>
                 </configuration>
             </plugin>
         </plugins>
     </build>
 
     <profiles>
-        <!-- Release profile for Maven Central publishing -->
         <profile>
             <id>release</id>
             <build>
                 <plugins>
-                    <!-- GPG plugin for signing artifacts -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>${maven.gpg.plugin.version}</version>
+                        <version>${plugin.gpg.version}</version>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
@@ -330,24 +335,11 @@
                             </execution>
                         </executions>
                     </plugin>
-
-                    <!-- Nexus staging plugin -->
-                    <plugin>
-                        <groupId>org.sonatype.plugins</groupId>
-                        <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>${nexus.staging.plugin.version}</version>
-                        <extensions>true</extensions>
-                        <configuration>
-                            <serverId>ossrh</serverId>
-                            <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
-                            <autoReleaseAfterClose>true</autoReleaseAfterClose>
-                        </configuration>
-                    </plugin>
                 </plugins>
             </build>
         </profile>
 
-        <!-- Profile for running with embedded MongoDB -->
+        <!-- Embedded Mongo tests -->
         <profile>
             <id>embedded-mongo</id>
             <activation>
